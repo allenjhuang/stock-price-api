@@ -1,6 +1,5 @@
 import json
 import requests
-# import yfinance as yf
 
 
 def main(request):
@@ -26,31 +25,35 @@ def main(request):
 
     # Request data
     # {
-    #     "ticker": "SPY"
+    #     "tickers": ["SPY", "VTSAX"]
     # }
-    requested_ticker = None
+    requested_tickers = None
     request_json = request.get_json()
     # GET
-    if request.args and 'ticker' in request.args:
-        requested_ticker = request.args.get('ticker')
+    if request.args and 'tickers' in request.args:
+        requested_tickers = request.args.get('tickers')
     # POST
-    elif request_json or 'ticker' in request_json:
-        requested_ticker = request.json['ticker']
+    elif request_json or 'tickers' in request_json:
+        requested_tickers = request.json['tickers']
+
+    # Allow just a string to be passed.
+    if not isinstance(requested_tickers, list):
+        requested_tickers = [requested_tickers]
 
     # Response data
-    # ticker_data = yf.Ticker(requested_ticker)
-    # price = ticker_data.info['regularMarketPrice']
-    # percent_change = (price / ticker_data.info['previousClose'] - 1) * 100
-    ticker_data = requests.get(f'https://query2.finance.yahoo.com/v11/finance/quoteSummary/{requested_ticker}?modules=price').json()['quoteSummary']['result'][0]['price']
-    return_value = json.dumps({
-        'price': ticker_data['regularMarketPrice']['raw'],
-        'percent_change': ticker_data['regularMarketChangePercent']['raw'],
-    })
+    return_value = []
+    for requested_ticker in requested_tickers:
+        ticker_data = requests.get(f'https://query2.finance.yahoo.com/v11/finance/quoteSummary/{requested_ticker}?modules=price').json()['quoteSummary']['result'][0]['price']
+        return_value.append({
+            'ticker': requested_ticker,
+            'price': ticker_data['regularMarketPrice']['raw'],
+            'percent_change': ticker_data['regularMarketChangePercent']['raw'],
+        })
 
     # Set CORS headers for the main request
     headers = {
         'Access-Control-Allow-Origin': '*'
     }
     return (
-        return_value, 200, headers
+        json.dumps(return_value), 200, headers
     )
