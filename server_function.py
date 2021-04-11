@@ -1,5 +1,6 @@
 import json
-import yfinance as yf
+import requests
+# import yfinance as yf
 
 
 def main(request):
@@ -37,10 +38,13 @@ def main(request):
         requested_ticker = request.json['ticker']
 
     # Response data
-    yf_ticker = yf.Ticker(requested_ticker)
-    percent_change = (yf_ticker.info['regularMarketPrice'] / yf_ticker.info['previousClose'] - 1) * 100
+    # ticker_data = yf.Ticker(requested_ticker)
+    # price = ticker_data.info['regularMarketPrice']
+    # percent_change = (price / ticker_data.info['previousClose'] - 1) * 100
+    ticker_data = requests.get(f'https://query2.finance.yahoo.com/v11/finance/quoteSummary/{requested_ticker}?modules=price').json()['quoteSummary']['result'][0]['price']
     return_value = json.dumps({
-        'message': percent_change,
+        'price': ticker_data['regularMarketPrice']['raw'],
+        'percent_change': ticker_data['regularMarketChangePercent']['raw'],
     })
 
     # Set CORS headers for the main request
