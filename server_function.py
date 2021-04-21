@@ -43,12 +43,27 @@ def main(request):
     # Response data
     return_value = []
     for requested_ticker in requested_tickers:
-        ticker_data = requests.get(f'https://query2.finance.yahoo.com/v11/finance/quoteSummary/{requested_ticker}?modules=price').json()['quoteSummary']['result'][0]['price']
-        return_value.append({
-            'ticker': requested_ticker,
-            'price': ticker_data['regularMarketPrice']['raw'],
-            'percent_change': ticker_data['regularMarketChangePercent']['raw'],
-        })
+        while True:
+            try:
+                ticker_data = requests.get(f'https://query1.finance.yahoo.com/v11/finance/quoteSummary/{requested_ticker}?modules=price').json()['quoteSummary']['result'][0]['price']
+                return_value.append({
+                    'ticker': requested_ticker,
+                    'price': ticker_data['regularMarketPrice']['raw'],
+                    'percent_change': ticker_data['regularMarketChangePercent']['raw'],
+                    # 'percent_change': ticker_data['regularMarketPrice']['raw'] / ticker_data['regularMarketPreviousClose']['raw'] - 1
+                    # 'error': False,
+                })
+                break
+            except TypeError:
+                pass
+            except KeyError:
+                return_value.append({
+                    'ticker': requested_ticker,
+                    'price': 0,
+                    'percent_change': 0,
+                    # 'error': True,
+                })
+                break
 
     # Set CORS headers for the main request
     headers = {
