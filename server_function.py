@@ -1,6 +1,8 @@
 import json
 import requests
 
+BATCH_SIZE = 500
+
 
 def main(request):
     """Responds to any HTTP request.
@@ -40,35 +42,36 @@ def main(request):
     if not isinstance(requested_tickers, list):
         requested_tickers = [requested_tickers]
 
+    num_batches = ((len(requested_tickers) - 1) // BATCH_SIZE) + 1
+    symbol_batches = []
+    for batch_index in range(num_batches):
+        symbol_batches.append(','.join(requested_tickers[batch_index*BATCH_SIZE:min((batch_index+1)*BATCH_SIZE, len(requested_tickers))]).replace('.', '-'))
     
-    symbols = ",".join(requested_tickers)
     # Response data
     return_value = []
-    while True:
-        try:
-            ticker_data = requests.get(f'https://query2.finance.yahoo.com/v7/finance/quote?symbols={symbols}&fields=symbol,shortName,longName,regularMarketChangePercent,regularMarketPrice').json()['quoteResponse']['result']
-            for ticker_datum in ticker_data:
-                try:
+    for symbols in symbol_batches:
+        while True: # infinite loop to keep trying to get ticker_data
+            try:
+                ticker_data = requests.get(f'https://query2.finance.yahoo.com/v7/finance/quote?symbols={symbols}&fields=symbol,shortName,longName,regularMarketChangePercent,regularMarketPrice').json()['quoteResponse']['result']
+                for ticker_datum in ticker_data:
+                    #print(f'done with ticker {ticker_datum["symbol"]}')
                     return_value.append({
-                        'ticker': ticker_datum['symbol'],
+                        'ticker': ticker_datum['symbol'] if 'symbol' in ticker_datum else '',
                         'name': ticker_datum['shortName'] if 'shortName' in ticker_datum else (ticker_datum['longName'] if 'longName' in ticker_datum else ''),
-                        'price': ticker_datum['regularMarketPrice'],
-                        'percent_change': ticker_datum['regularMarketChangePercent'],
-                        # 'percent_change': ticker_data['regularMarketPrice']['raw'] / ticker_data['regularMarketPreviousClose']['raw'] - 1
-                        # 'error': False,
+                        'price': ticker_datum['regularMarketPrice'] if 'regularMarketPrice' in ticker_datum else 0,
+                        'percent_change': ticker_datum['regularMarketChangePercent'] if 'regularMarketChangePercent' in ticker_datum else 0,
                     })
-            break
-        except TypeError:
-            pass
-        except KeyError:
-            return_value.append({
-                'ticker': 'NULL',
-                'name': 'NULL',
-                'price': 0,
-                'percent_change': 0,
-                # 'error': True,
-            })
-            break
+                break
+            except TypeError:
+                pass
+            except KeyError:
+                return_value.append({
+                    'ticker': symbols,
+                    'name': '',
+                    'price': 0,
+                    'percent_change': 0,
+                })
+                break
 
     # Set CORS headers for the main request
     headers = {
