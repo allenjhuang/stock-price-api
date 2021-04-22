@@ -91,6 +91,7 @@ def get_daily_stock_data(requested_tickers: list) -> list:
                         'name': ticker_datum['shortName'] if 'shortName' in ticker_datum else (ticker_datum['longName'] if 'longName' in ticker_datum else ''),
                         'price': ticker_datum['regularMarketPrice'] if 'regularMarketPrice' in ticker_datum else 0,
                         'percent_change': ticker_datum['regularMarketChangePercent'] if 'regularMarketChangePercent' in ticker_datum else 0,
+                        'market_time': ticker_datum['regularMarketTime'] if 'regularMarketTime' in ticker_datum else 0,
                     })
                 break
             except TypeError:

@@ -6,13 +6,19 @@ import unittest
 
 def are_all_fields_in_return_stock_data(data):
     return all(
-        [
+        (
             'ticker' in datum and
             'name' in datum and
             'price' in datum and
-            'percent_change' in datum
+            'percent_change' in datum and
+            'market_time' in datum and
+            datum['ticker'] is not None and
+            datum['name'] is not None and
+            datum['price'] is not None and
+            datum['percent_change'] is not None and
+            datum['market_time'] is not None
             for datum in data
-        ]
+        )
     )
 
 
