@@ -18,17 +18,21 @@ def main(request):
         # Allows GET requests from any origin with the Content-Type
         headers = {
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET',
+            'Access-Control-Allow-Methods': 'GET',  # add POST
             'Access-Control-Allow-Headers': 'Content-Type',
             'Access-Control-Max-Age': '3600'
         }
         return ('', 204, headers)
 
+    # Set CORS headers for the main request
+    headers = {
+        'Access-Control-Allow-Origin': '*'
+    }
 
     # Request data
     # {
-    #     "tickers": ["SPY", "VTSAX"],
-    #     "range": "1d",
+    #     "tickers": ["SPY", "VTSAX"],  // REQUIRED
+    #     "range": "1d",  // OPTIONAL
     # }
     requested_tickers = None
     requested_range = None
@@ -46,6 +50,12 @@ def main(request):
         if 'range' in request_json:
             requested_range = request.json['range']
 
+    # Required parameter
+    if requested_tickers is None:
+        # Bad request, no tickers found
+        return (json.dumps(
+            {'error': 'No tickers were in the request.'}), 400, headers)
+
     # Allow just a string to be passed.
     if not isinstance(requested_tickers, list):
         requested_tickers = [requested_tickers]
@@ -55,13 +65,8 @@ def main(request):
     else:
         stock_data = get_range_stock_data(requested_tickers, requested_range)
 
-    # Set CORS headers for the main request
-    headers = {
-        'Access-Control-Allow-Origin': '*'
-    }
-    return (
-        json.dumps(stock_data), 200, headers
-    )
+    # Return tuple of (body, status, headers)
+    return (json.dumps(stock_data), 200, headers)
 
 
 def get_daily_stock_data(requested_tickers):
