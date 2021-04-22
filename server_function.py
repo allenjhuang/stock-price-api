@@ -86,14 +86,8 @@ def getDailyStockData(requested_tickers):
                     })
                 break
             except TypeError:
-                pass
-            except KeyError:
-                stock_data.append({
-                    'ticker': symbols,
-                    'name': '',
-                    'price': 0,
-                    'percent_change': 0,
-                })
+                break
+            except KeyError: # if ticker doesn't exist
                 break
     return stock_data
 
@@ -110,8 +104,10 @@ def getIntervalStockData(requested_tickers, requested_interval):
                 stock_datum['percent_change'] = ((stock_datum['price'] - historical_price) / historical_price) * 100
                 break
             except TypeError:
-                pass
+                stock_datum['percent_change'] = None
+                break
             except KeyError:
+                stock_datum['percent_change'] = None
                 break
     return stock_data
 
@@ -126,3 +122,6 @@ def test():
     print("ytd = " + str(getIntervalStockData(requested_tickers, "ytd")))
     print("1y  = " + str(getIntervalStockData(requested_tickers, "1y")))
     print("max = " + str(getIntervalStockData(requested_tickers, "max")))
+    print(json.dumps(getDailyStockData(requested_tickers)))
+
+#test()
