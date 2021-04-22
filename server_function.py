@@ -40,19 +40,19 @@ def main(request):
     # }
     requested_tickers = None
     requested_range = None
-    request_json = request.get_json()
+    request_json = request.get_json(silent=True)  # returns None if failed
+    # POST
+    if request_json:
+        if 'tickers' in request_json:
+            requested_tickers = request_json['tickers']
+        if 'range' in request_json:
+            requested_range = request_json['range']
     # GET
-    if request.args:
+    elif request.args:
         if 'tickers' in request.args:
             requested_tickers = request.args.get('tickers')
         if 'range' in request.args:
             requested_range = request.args.get('range')
-    # POST
-    elif request_json:
-        if 'tickers' in request_json:
-            requested_tickers = request.json['tickers']
-        if 'range' in request_json:
-            requested_range = request.json['range']
 
     # Required parameter
     if requested_tickers is None:

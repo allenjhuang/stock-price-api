@@ -1,5 +1,6 @@
 import server_function
 from datetime import datetime
+import json
 import unittest
 
 
@@ -20,7 +21,7 @@ class TestGetDataMethods(unittest.TestCase):
         requested_tickers = ['SPY']
         data = server_function.get_daily_stock_data(requested_tickers)
         self.assertTrue(
-            expr=len(data) == len(requested_tickers) and
+            len(data) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(data)
         )
 
@@ -28,7 +29,7 @@ class TestGetDataMethods(unittest.TestCase):
         requested_tickers = ['GME', 'TSLA', 'GOOG', 'VTI', 'VTSAX', 'ARKK']
         data = server_function.get_daily_stock_data(requested_tickers)
         self.assertTrue(
-            expr=len(data) == len(requested_tickers) and
+            len(data) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(data)
         )
 
@@ -38,11 +39,11 @@ class TestGetDataMethods(unittest.TestCase):
     #     first = server_function.get_range_stock_data(requested_tickers, 1)
     #     second = server_function.get_range_stock_data(requested_tickers, '1d')
     #     self.assertTrue(
-    #         expr=len(first) == len(requested_tickers)
+    #         len(first) == len(requested_tickers)
     #         and are_all_fields_in_return_stock_data(first)
     #     )
     #     self.assertTrue(
-    #         expr=len(second) == len(requested_tickers) and
+    #         len(second) == len(requested_tickers) and
     #         are_all_fields_in_return_stock_data(second)
     #     )
     #     self.assertEqual(
@@ -55,11 +56,11 @@ class TestGetDataMethods(unittest.TestCase):
         first = server_function.get_range_stock_data(requested_tickers, 5)
         second = server_function.get_range_stock_data(requested_tickers, '5d')
         self.assertTrue(
-            expr=len(first) == len(requested_tickers) and
+            len(first) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(first)
         )
         self.assertTrue(
-            expr=len(second) == len(requested_tickers) and
+            len(second) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(second)
         )
         self.assertEqual(
@@ -73,11 +74,11 @@ class TestGetDataMethods(unittest.TestCase):
         first = server_function.get_range_stock_data(requested_tickers, 30)
         second = server_function.get_range_stock_data(requested_tickers, '1mo')
         self.assertTrue(
-            expr=len(first) == len(requested_tickers) and
+            len(first) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(first)
         )
         self.assertTrue(
-            expr=len(second) == len(requested_tickers) and
+            len(second) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(second)
         )
         self.assertEqual(
@@ -91,11 +92,11 @@ class TestGetDataMethods(unittest.TestCase):
     #     first = server_function.get_range_stock_data(requested_tickers, 90)
     #     second = server_function.get_range_stock_data(requested_tickers, '3mo')
     #     self.assertTrue(
-    #         expr=len(first) == len(requested_tickers) and
+    #         len(first) == len(requested_tickers) and
     #         are_all_fields_in_return_stock_data(first)
     #     )
     #     self.assertTrue(
-    #         expr=len(second) == len(requested_tickers) and
+    #         len(second) == len(requested_tickers) and
     #         are_all_fields_in_return_stock_data(second)
     #     )
     #     self.assertEqual(
@@ -109,11 +110,11 @@ class TestGetDataMethods(unittest.TestCase):
         first = server_function.get_range_stock_data(requested_tickers, 180)
         second = server_function.get_range_stock_data(requested_tickers, '6mo')
         self.assertTrue(
-            expr=len(first) == len(requested_tickers) and
+            len(first) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(first)
         )
         self.assertTrue(
-            expr=len(second) == len(requested_tickers) and
+            len(second) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(second)
         )
         self.assertEqual(
@@ -127,11 +128,11 @@ class TestGetDataMethods(unittest.TestCase):
         first = server_function.get_range_stock_data(requested_tickers, 180)
         second = server_function.get_range_stock_data(requested_tickers, '6mo')
         self.assertTrue(
-            expr=len(first) == len(requested_tickers) and
+            len(first) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(first)
         )
         self.assertTrue(
-            expr=len(second) == len(requested_tickers) and
+            len(second) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(second)
         )
         self.assertEqual(
@@ -145,17 +146,44 @@ class TestGetDataMethods(unittest.TestCase):
     #     first = server_function.get_range_stock_data(requested_tickers, 365)
     #     second = server_function.get_range_stock_data(requested_tickers, '1y')
     #     self.assertTrue(
-    #         expr=len(first) == len(requested_tickers) and
+    #         len(first) == len(requested_tickers) and
     #         are_all_fields_in_return_stock_data(first)
     #     )
     #     self.assertTrue(
-    #         expr=len(second) == len(requested_tickers) and
+    #         len(second) == len(requested_tickers) and
     #         are_all_fields_in_return_stock_data(second)
     #     )
     #     self.assertEqual(
     #         first=first,
     #         second=second,
     #     )
+
+
+class TestRequest:
+    """Only used to simulate a request object for the below test."""
+    def __init__(self, json: dict) -> None:
+        self.json = json
+        self.method = "TEST"
+
+    def __len__(self) -> int:
+        return len(self.json['tickers'])
+
+    def get_json(self, silent: bool = False) -> dict:
+        if type(self.json) is not dict:
+            return None
+        return self.json
+
+
+class TestMain(unittest.TestCase):
+    def test_main_simple(self):
+        request = TestRequest({
+            'tickers': 'SPY',
+        })
+        return_value_from_main = server_function.main(request)
+        self.assertTrue(len(return_value_from_main) > 0)
+        self.assertTrue(type(return_value_from_main[0]) is str)
+        data = json.loads(return_value_from_main[0])
+        self.assertTrue(are_all_fields_in_return_stock_data(data))
 
 
 class TestGetMarketOpenTime(unittest.TestCase):
