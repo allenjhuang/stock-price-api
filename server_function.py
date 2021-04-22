@@ -69,7 +69,7 @@ def main(request):
     return (json.dumps(stock_data), 200, headers)
 
 
-def get_daily_stock_data(requested_tickers):
+def get_daily_stock_data(requested_tickers: list) -> list:
     num_batches = ((len(requested_tickers) - 1) // BATCH_SIZE) + 1
     symbol_batches = []
     for batch_index in range(num_batches):
@@ -78,11 +78,10 @@ def get_daily_stock_data(requested_tickers):
     # Response data
     stock_data = []
     for symbols in symbol_batches:
-        while True: # infinite loop to keep trying to get ticker_data
+        while True:  # infinite loop to keep trying to get ticker_data
             try:
                 ticker_data = requests.get(f'https://query2.finance.yahoo.com/v7/finance/quote?symbols={symbols}&fields=symbol,shortName,longName,regularMarketChangePercent,regularMarketPrice').json()['quoteResponse']['result']
                 for ticker_datum in ticker_data:
-                    #print(f'done with ticker {ticker_datum["symbol"]}')
                     stock_data.append({
                         'ticker': ticker_datum['symbol'] if 'symbol' in ticker_datum else '',
                         'name': ticker_datum['shortName'] if 'shortName' in ticker_datum else (ticker_datum['longName'] if 'longName' in ticker_datum else ''),
@@ -92,15 +91,15 @@ def get_daily_stock_data(requested_tickers):
                 break
             except TypeError:
                 break
-            except KeyError: # if ticker doesn't exist
+            except KeyError:  # if ticker doesn't exist
                 break
     return stock_data
 
 
-def get_range_stock_data(requested_tickers, requested_range):
+def get_range_stock_data(requested_tickers: list, requested_range) -> list:
     stock_data = get_daily_stock_data(requested_tickers);
     for stock_datum in stock_data:
-        while True: # infinite loop to keep trying to get ticker_data
+        while True:  # infinite loop to keep trying to get ticker_data
             try:
                 historical_price = requests.get(f'https://query1.finance.yahoo.com/v8/finance/chart/{stock_datum["ticker"]}?interval=1d&range={requested_range}').json()['chart']['result'][0]['indicators']['quote'][0]['close'][0]
                 # change = stock_datum['price'] - historical_price
@@ -115,18 +114,3 @@ def get_range_stock_data(requested_tickers, requested_range):
                 stock_datum['percent_change'] = None
                 break
     return stock_data
-
-
-def test():
-    requested_tickers = ["GME", "TSLA", "GOOG", "VTI", "VTSAX", "ARKK"]
-    print("get_daily_stock_data = " + str(get_daily_stock_data(requested_tickers)))
-    print("1d  = " + str(get_range_stock_data(requested_tickers, "1d")))
-    print("5d  = " + str(get_range_stock_data(requested_tickers, "5d")))
-    print("1mo = " + str(get_range_stock_data(requested_tickers, "1mo")))
-    print("6mo = " + str(get_range_stock_data(requested_tickers, "6mo")))
-    print("ytd = " + str(get_range_stock_data(requested_tickers, "ytd")))
-    print("1y  = " + str(get_range_stock_data(requested_tickers, "1y")))
-    print("max = " + str(get_range_stock_data(requested_tickers, "max")))
-    print(json.dumps(get_daily_stock_data(requested_tickers)))
-
-#test()
