@@ -17,18 +17,18 @@ def main(request):
         Response object using
         `make_response <http://flask.pocoo.org/docs/1.0/api/#flask.Flask.make_response>`.
     """
-    # Set CORS headers for the preflight request
+    # Set CORS headers for the preflight request.
     if request.method == 'OPTIONS':
-        # Allows GET requests from any origin with the Content-Type
+        # Allows GET and POST requests from any origin with the Content-Type.
         headers = {
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET',  # add POST
+            'Access-Control-Allow-Methods': 'GET, POST',
             'Access-Control-Allow-Headers': 'Content-Type',
             'Access-Control-Max-Age': '3600'
         }
         return ('', 204, headers)
 
-    # Set CORS headers for the main request
+    # Set CORS headers for the main request.
     headers = {
         'Access-Control-Allow-Origin': '*'
     }
@@ -120,7 +120,7 @@ def get_range_stock_data(requested_tickers: list, requested_range) -> list:
                 else:
                     historical_price = requests.get(f'https://query1.finance.yahoo.com/v8/finance/chart/{stock_datum["ticker"]}?interval=1d&range={requested_range}').json()['chart']['result'][0]['indicators']['quote'][0]['close'][0]
 
-                print("for " + str(stock_datum["ticker"]) + " at " + str(requested_range) + " ago, price was " + str(historical_price))
+                # print("for " + str(stock_datum["ticker"]) + " at " + str(requested_range) + " ago, price was " + str(historical_price))
                 # change = stock_datum['price'] - historical_price
                 # percentChange = change / old_price
                 if historical_price:
