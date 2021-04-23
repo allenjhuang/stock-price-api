@@ -11,12 +11,10 @@ def are_all_fields_in_return_stock_data(data):
             'name' in datum and
             'price' in datum and
             'percent_change' in datum and
-            'market_time' in datum and
             datum['ticker'] is not None and
             datum['name'] is not None and
             datum['price'] is not None and
-            datum['percent_change'] is not None and
-            datum['market_time'] is not None
+            datum['percent_change'] is not None
             for datum in data
         ]
     )
@@ -25,25 +23,29 @@ def are_all_fields_in_return_stock_data(data):
 class TestGetDataMethods(unittest.TestCase):
     def test_get_daily_stock_data_for_one(self):
         requested_tickers = ['SPY']
-        data = server_function.get_daily_stock_data(requested_tickers)
+        data, market_time = server_function.get_daily_stock_data(
+            requested_tickers)
         self.assertTrue(
             len(data) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(data)
         )
+        self.assertTrue(market_time is not None)
 
     def test_get_daily_stock_data_for_six(self):
         requested_tickers = ['GME', 'TSLA', 'GOOG', 'VTI', 'VTSAX', 'ARKK']
-        data = server_function.get_daily_stock_data(requested_tickers)
+        data, market_time = server_function.get_daily_stock_data(
+            requested_tickers)
         self.assertTrue(
             len(data) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(data)
         )
+        self.assertTrue(market_time is not None)
 
     # def test_compare_historical_data_1_and_1d(self):
     #     """NOTE: Test failed on 4/22/21 at 5:33 PM ET."""
     #     requested_tickers = ['SPY']
-    #     first = server_function.get_range_stock_data(requested_tickers, 1)
-    #     second = server_function.get_range_stock_data(requested_tickers, '1d')
+    #     first = server_function.get_range_stock_data(requested_tickers, 1)[0]
+    #     second = server_function.get_range_stock_data(requested_tickers, '1d')[0]
     #     self.assertTrue(
     #         len(first) == len(requested_tickers)
     #         and are_all_fields_in_return_stock_data(first)
@@ -59,8 +61,8 @@ class TestGetDataMethods(unittest.TestCase):
 
     def test_compare_historical_data_5_and_5d(self):
         requested_tickers = ['SPY']
-        first = server_function.get_range_stock_data(requested_tickers, 5)
-        second = server_function.get_range_stock_data(requested_tickers, '5d')
+        first = server_function.get_range_stock_data(requested_tickers, 5)[0]
+        second = server_function.get_range_stock_data(requested_tickers, '5d')[0]
         self.assertTrue(
             len(first) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(first)
@@ -77,8 +79,8 @@ class TestGetDataMethods(unittest.TestCase):
     def test_compare_historical_data_30_and_1mo(self):
         """NOTE: Test passed on 4/22/21."""
         requested_tickers = ['SPY']
-        first = server_function.get_range_stock_data(requested_tickers, 30)
-        second = server_function.get_range_stock_data(requested_tickers, '1mo')
+        first = server_function.get_range_stock_data(requested_tickers, 30)[0]
+        second = server_function.get_range_stock_data(requested_tickers, '1mo')[0]
         self.assertTrue(
             len(first) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(first)
@@ -95,8 +97,8 @@ class TestGetDataMethods(unittest.TestCase):
     # def test_compare_historical_data_90_and_3mo(self):
     #     """NOTE: Test failed on 4/22/21."""
     #     requested_tickers = ['SPY']
-    #     first = server_function.get_range_stock_data(requested_tickers, 90)
-    #     second = server_function.get_range_stock_data(requested_tickers, '3mo')
+    #     first = server_function.get_range_stock_data(requested_tickers, 90)[0]
+    #     second = server_function.get_range_stock_data(requested_tickers, '3mo')[0]
     #     self.assertTrue(
     #         len(first) == len(requested_tickers) and
     #         are_all_fields_in_return_stock_data(first)
@@ -113,8 +115,8 @@ class TestGetDataMethods(unittest.TestCase):
     def test_compare_historical_data_180_and_6mo(self):
         """NOTE: Test passed on 4/22/21."""
         requested_tickers = ['SPY']
-        first = server_function.get_range_stock_data(requested_tickers, 180)
-        second = server_function.get_range_stock_data(requested_tickers, '6mo')
+        first = server_function.get_range_stock_data(requested_tickers, 180)[0]
+        second = server_function.get_range_stock_data(requested_tickers, '6mo')[0]
         self.assertTrue(
             len(first) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(first)
@@ -131,8 +133,8 @@ class TestGetDataMethods(unittest.TestCase):
     def test_compare_historical_data_180_and_6mo(self):
         """NOTE: Test passed on 4/22/21."""
         requested_tickers = ['SPY']
-        first = server_function.get_range_stock_data(requested_tickers, 180)
-        second = server_function.get_range_stock_data(requested_tickers, '6mo')
+        first = server_function.get_range_stock_data(requested_tickers, 180)[0]
+        second = server_function.get_range_stock_data(requested_tickers, '6mo')[0]
         self.assertTrue(
             len(first) == len(requested_tickers) and
             are_all_fields_in_return_stock_data(first)
@@ -149,8 +151,8 @@ class TestGetDataMethods(unittest.TestCase):
     # def test_compare_historical_data_365_and_1y(self):
     #     """NOTE: Test failed on 4/22/21."""
     #     requested_tickers = ['SPY']
-    #     first = server_function.get_range_stock_data(requested_tickers, 365)
-    #     second = server_function.get_range_stock_data(requested_tickers, '1y')
+    #     first = server_function.get_range_stock_data(requested_tickers, 365)[0]
+    #     second = server_function.get_range_stock_data(requested_tickers, '1y')[0]
     #     self.assertTrue(
     #         len(first) == len(requested_tickers) and
     #         are_all_fields_in_return_stock_data(first)
@@ -198,9 +200,12 @@ class TestMain(unittest.TestCase):
         return_value_from_main = server_function.main(request)
         self.assertTrue(len(return_value_from_main) > 0)
         self.assertTrue(isinstance(return_value_from_main[0], str))
-        data = json.loads(return_value_from_main[0])
-        self.assertTrue(len(data) == request.get_tickers_length())
-        self.assertTrue(are_all_fields_in_return_stock_data(data))
+        body = json.loads(return_value_from_main[0])
+        self.assertTrue(
+            len(body['stock_data']) == request.get_tickers_length())
+        self.assertTrue(
+            are_all_fields_in_return_stock_data(body['stock_data']))
+        self.assertTrue(body['market_time'] is not None)
 
     def test_main_empty_ticker_array(self):
         request = TestRequest({
@@ -209,8 +214,8 @@ class TestMain(unittest.TestCase):
         return_value_from_main = server_function.main(request)
         self.assertTrue(len(return_value_from_main) > 0)
         self.assertTrue(isinstance(return_value_from_main[0], str))
-        data = json.loads(return_value_from_main[0])
-        self.assertFalse(are_all_fields_in_return_stock_data(data))
+        self.assertTrue(return_value_from_main[1], 400)
+        self.assertTrue('error' in json.loads(return_value_from_main[0]))
 
     def test_main_null_ticker(self):
         request = TestRequest({
@@ -219,8 +224,8 @@ class TestMain(unittest.TestCase):
         return_value_from_main = server_function.main(request)
         self.assertTrue(len(return_value_from_main) > 0)
         self.assertTrue(isinstance(return_value_from_main[0], str))
-        data = json.loads(return_value_from_main[0])
-        self.assertFalse(are_all_fields_in_return_stock_data(data))
+        self.assertTrue(return_value_from_main[1], 400)
+        self.assertTrue('error' in json.loads(return_value_from_main[0]))
 
     def test_main_range_1d(self):
         request = TestRequest({
@@ -230,9 +235,12 @@ class TestMain(unittest.TestCase):
         return_value_from_main = server_function.main(request)
         self.assertTrue(len(return_value_from_main) > 0)
         self.assertTrue(isinstance(return_value_from_main[0], str))
-        data = json.loads(return_value_from_main[0])
-        self.assertTrue(len(data) == request.get_tickers_length())
-        self.assertTrue(are_all_fields_in_return_stock_data(data))
+        body = json.loads(return_value_from_main[0])
+        self.assertTrue(
+            len(body['stock_data']) == request.get_tickers_length())
+        self.assertTrue(
+            are_all_fields_in_return_stock_data(body['stock_data']))
+        self.assertTrue(body['market_time'] is not None)
 
     def test_main_range_1(self):
         request = TestRequest({
@@ -242,9 +250,12 @@ class TestMain(unittest.TestCase):
         return_value_from_main = server_function.main(request)
         self.assertTrue(len(return_value_from_main) > 0)
         self.assertTrue(isinstance(return_value_from_main[0], str))
-        data = json.loads(return_value_from_main[0])
-        self.assertTrue(len(data) == request.get_tickers_length())
-        self.assertTrue(are_all_fields_in_return_stock_data(data))
+        body = json.loads(return_value_from_main[0])
+        self.assertTrue(
+            len(body['stock_data']) == request.get_tickers_length())
+        self.assertTrue(
+            are_all_fields_in_return_stock_data(body['stock_data']))
+        self.assertTrue(body['market_time'] is not None)
 
     def test_main_invalid_range(self):
         request = TestRequest({
@@ -254,9 +265,8 @@ class TestMain(unittest.TestCase):
         return_value_from_main = server_function.main(request)
         self.assertTrue(len(return_value_from_main) > 0)
         self.assertTrue(isinstance(return_value_from_main[0], str))
-        data = json.loads(return_value_from_main[0])
-        self.assertFalse(len(data) == request.get_tickers_length())
-        self.assertFalse(are_all_fields_in_return_stock_data(data))
+        self.assertTrue(return_value_from_main[1], 400)
+        self.assertTrue('error' in json.loads(return_value_from_main[0]))
 
 
 class TestGetMarketOpenTime(unittest.TestCase):

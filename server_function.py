@@ -57,23 +57,27 @@ def main(request):
     # Required parameter
     if requested_tickers is None or len(requested_tickers) == 0:
         # Bad request, no tickers found
-        return (json.dumps(
-            [{'error': 'No tickers were in the request.'}]), 400, headers)
+        return (json.dumps({'error': 'No tickers in the request.'}), 400, headers)
 
     # Allow just a string to be passed.
     if not isinstance(requested_tickers, list):
         requested_tickers = [requested_tickers]
 
+    market_time = None
     if requested_range is None:
-        stock_data = get_daily_stock_data(requested_tickers)
+        stock_data, market_time = get_daily_stock_data(requested_tickers)
     else:
-        stock_data = get_range_stock_data(requested_tickers, requested_range)
+        stock_data, market_time = get_range_stock_data(requested_tickers, requested_range)
+        if len(stock_data) == 0:
+            return (json.dumps({'error': 'Invalid range in request.'}), 400, headers)
 
     # Return tuple of (body, status, headers)
-    return (json.dumps(stock_data), 200, headers)
+    return (json.dumps({'stock_data': stock_data, 'market_time': market_time}), 200, headers)
 
 
-def get_daily_stock_data(requested_tickers: list) -> list:
+def get_daily_stock_data(requested_tickers: list) -> tuple:
+    market_time = None
+
     num_batches = ((len(requested_tickers) - 1) // BATCH_SIZE) + 1
     symbol_batches = []
     for batch_index in range(num_batches):
@@ -91,17 +95,17 @@ def get_daily_stock_data(requested_tickers: list) -> list:
                         'name': ticker_datum['shortName'] if 'shortName' in ticker_datum else (ticker_datum['longName'] if 'longName' in ticker_datum else ''),
                         'price': ticker_datum['regularMarketPrice'] if 'regularMarketPrice' in ticker_datum else 0,
                         'percent_change': ticker_datum['regularMarketChangePercent'] if 'regularMarketChangePercent' in ticker_datum else 0,
-                        'market_time': ticker_datum['regularMarketTime'] if 'regularMarketTime' in ticker_datum else 0,
                     })
+                    market_time = ticker_datum['regularMarketTime'] if 'regularMarketTime' in ticker_datum else None
                 break
             except TypeError:
                 break
             except KeyError:  # if ticker doesn't exist
                 break
-    return stock_data
+    return (stock_data, market_time)
 
 
-def get_range_stock_data(requested_tickers: list, requested_range) -> list:
+def get_range_stock_data(requested_tickers: list, requested_range) -> tuple:
     period = None
     if isinstance(requested_range, int):
         period = get_market_open_time(days_ago=requested_range)
@@ -120,10 +124,10 @@ def get_range_stock_data(requested_tickers: list, requested_range) -> list:
     }:
         pass
     else:  # unexpected type
-        return []
+        return ([], None)
 
     # Get info from other endpoint first.
-    stock_data = get_daily_stock_data(requested_tickers)
+    stock_data, market_time = get_daily_stock_data(requested_tickers)
 
     for stock_datum in stock_data:
         while True:  # infinite loop to keep trying to get ticker_data
@@ -147,7 +151,7 @@ def get_range_stock_data(requested_tickers: list, requested_range) -> list:
             except KeyError:
                 stock_datum['percent_change'] = None
                 break
-    return stock_data
+    return (stock_data, market_time)
 
 
 def get_historical_price_from_period(stock_datum: dict, period: int) -> int:
