@@ -5,8 +5,8 @@ import unittest
 
 
 def are_all_fields_in_return_stock_data(data):
-    return all(
-        (
+    return len(data) > 0 and all(
+        [
             'ticker' in datum and
             'name' in datum and
             'price' in datum and
@@ -18,7 +18,7 @@ def are_all_fields_in_return_stock_data(data):
             datum['percent_change'] is not None and
             datum['market_time'] is not None
             for datum in data
-        )
+        ]
     )
 
 
@@ -167,17 +167,27 @@ class TestGetDataMethods(unittest.TestCase):
 
 class TestRequest:
     """Only used to simulate a request object for the below test."""
-    def __init__(self, json: dict) -> None:
-        self.json = json
+    def __init__(self, initial_data) -> None:
+        self.json = initial_data
         self.method = "TEST"
 
-    def __len__(self) -> int:
-        return len(self.json['tickers'])
-
     def get_json(self, silent: bool = False) -> dict:
-        if type(self.json) is not dict:
-            return None
+        if not isinstance(self.json, dict):
+            if silent:
+                return None
+            raise Exception('"parse" error')
         return self.json
+
+    def get_tickers_length(self) -> int:
+        if isinstance(self.json, dict):
+            if isinstance(self.json['tickers'], str):
+                return 1
+            elif isinstance(self.json['tickers'], list):
+                return len(self.json['tickers'])
+            else:
+                return -1
+        else:
+            return -1
 
 
 class TestMain(unittest.TestCase):
@@ -187,9 +197,66 @@ class TestMain(unittest.TestCase):
         })
         return_value_from_main = server_function.main(request)
         self.assertTrue(len(return_value_from_main) > 0)
-        self.assertTrue(type(return_value_from_main[0]) is str)
+        self.assertTrue(isinstance(return_value_from_main[0], str))
         data = json.loads(return_value_from_main[0])
+        self.assertTrue(len(data) == request.get_tickers_length())
         self.assertTrue(are_all_fields_in_return_stock_data(data))
+
+    def test_main_empty_ticker_array(self):
+        request = TestRequest({
+            'tickers': [],
+        })
+        return_value_from_main = server_function.main(request)
+        self.assertTrue(len(return_value_from_main) > 0)
+        self.assertTrue(isinstance(return_value_from_main[0], str))
+        data = json.loads(return_value_from_main[0])
+        self.assertFalse(are_all_fields_in_return_stock_data(data))
+
+    def test_main_null_ticker(self):
+        request = TestRequest({
+            'tickers': None,
+        })
+        return_value_from_main = server_function.main(request)
+        self.assertTrue(len(return_value_from_main) > 0)
+        self.assertTrue(isinstance(return_value_from_main[0], str))
+        data = json.loads(return_value_from_main[0])
+        self.assertFalse(are_all_fields_in_return_stock_data(data))
+
+    def test_main_range_1d(self):
+        request = TestRequest({
+            'tickers': ['SPY'],
+            'range': '1d',
+        })
+        return_value_from_main = server_function.main(request)
+        self.assertTrue(len(return_value_from_main) > 0)
+        self.assertTrue(isinstance(return_value_from_main[0], str))
+        data = json.loads(return_value_from_main[0])
+        self.assertTrue(len(data) == request.get_tickers_length())
+        self.assertTrue(are_all_fields_in_return_stock_data(data))
+
+    def test_main_range_1(self):
+        request = TestRequest({
+            'tickers': ['SPY'],
+            'range': 1,
+        })
+        return_value_from_main = server_function.main(request)
+        self.assertTrue(len(return_value_from_main) > 0)
+        self.assertTrue(isinstance(return_value_from_main[0], str))
+        data = json.loads(return_value_from_main[0])
+        self.assertTrue(len(data) == request.get_tickers_length())
+        self.assertTrue(are_all_fields_in_return_stock_data(data))
+
+    def test_main_invalid_range(self):
+        request = TestRequest({
+            'tickers': ['SPY'],
+            'range': 'gibberish',
+        })
+        return_value_from_main = server_function.main(request)
+        self.assertTrue(len(return_value_from_main) > 0)
+        self.assertTrue(isinstance(return_value_from_main[0], str))
+        data = json.loads(return_value_from_main[0])
+        self.assertFalse(len(data) == request.get_tickers_length())
+        self.assertFalse(are_all_fields_in_return_stock_data(data))
 
 
 class TestGetMarketOpenTime(unittest.TestCase):

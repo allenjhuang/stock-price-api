@@ -55,10 +55,10 @@ def main(request):
             requested_range = request.args.get('range')
 
     # Required parameter
-    if requested_tickers is None:
+    if requested_tickers is None or len(requested_tickers) == 0:
         # Bad request, no tickers found
         return (json.dumps(
-            {'error': 'No tickers were in the request.'}), 400, headers)
+            [{'error': 'No tickers were in the request.'}]), 400, headers)
 
     # Allow just a string to be passed.
     if not isinstance(requested_tickers, list):
@@ -103,9 +103,21 @@ def get_daily_stock_data(requested_tickers: list) -> list:
 
 def get_range_stock_data(requested_tickers: list, requested_range) -> list:
     period = None
-    if type(requested_range) is int:
+    if isinstance(requested_range, int):
         period = get_market_open_time(days_ago=requested_range)
-    elif type(requested_range) is str:
+    elif isinstance(requested_range, str) and requested_range in {
+        '1d',
+        '5d',
+        '1mo',
+        '3mo',
+        '6mo',
+        '1y',
+        '2y',
+        '5y',
+        '10y',
+        'ytd',
+        'max',
+    }:
         pass
     else:  # unexpected type
         return []
