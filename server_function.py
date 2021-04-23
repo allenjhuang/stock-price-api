@@ -5,7 +5,7 @@ import time
 
 BATCH_SIZE = 500
 MAX_RETRIES = 50
-SECONDS_IN_A_DAY = 86400
+SECONDS_IN_A_DAY = 24 * 60 * 60
 
 
 def main(request):
@@ -36,40 +36,43 @@ def main(request):
     # Request data
     # {
     #     "tickers": ["SPY", "VTSAX"],  // REQUIRED
-    #     "range": "1d",  // OPTIONAL str or num (num represents days ago)
+    #     "time_since": "1d"  // OPTIONAL, defaults to "1d"
     # }
     requested_tickers = None
-    requested_range = None
+    requested_time_since = None
     request_json = request.get_json(silent=True)  # returns None if failed
     # POST
     if request_json:
         if 'tickers' in request_json:
             requested_tickers = request_json['tickers']
-        if 'range' in request_json:
-            requested_range = request_json['range']
+        if 'time_since' in request_json:
+            requested_time_since = request_json['time_since']
     # GET
     elif request.args:
         if 'tickers' in request.args:
             requested_tickers = request.args.get('tickers')
-        if 'range' in request.args:
-            requested_range = request.args.get('range')
+        if 'time_since' in request.args:
+            requested_time_since = request.args.get('time_since')
 
     # Required parameter
     if requested_tickers is None or len(requested_tickers) == 0:
         # Bad request, no tickers found
         return (json.dumps({'error': 'No tickers in the request.'}), 400, headers)
 
+    if isinstance(requested_time_since, float):
+        requested_time_since = int(requested_time_since)
+
     # Allow just a string to be passed.
     if not isinstance(requested_tickers, list):
         requested_tickers = [requested_tickers]
 
     market_time = None
-    if requested_range is None:
+    if is_today(requested_time_since):
         stock_data, market_time = get_daily_stock_data(requested_tickers)
     else:
-        stock_data, market_time = get_range_stock_data(requested_tickers, requested_range)
+        stock_data, market_time = get_time_since_stock_data(requested_tickers, requested_time_since)
         if len(stock_data) == 0:
-            return (json.dumps({'error': 'Invalid range in request.'}), 400, headers)
+            return (json.dumps({'error': 'Invalid time_since in request.'}), 400, headers)
 
     # Return tuple of (body, status, headers)
     return (json.dumps({'stock_data': stock_data, 'market_time': market_time}), 200, headers)
@@ -105,26 +108,24 @@ def get_daily_stock_data(requested_tickers: list) -> tuple:
     return (stock_data, market_time)
 
 
-def get_range_stock_data(requested_tickers: list, requested_range) -> tuple:
-    period = None
-    if isinstance(requested_range, int):
-        period = get_market_open_time(days_ago=requested_range)
-    elif isinstance(requested_range, str) and requested_range in {
-        '1d',
-        '5d',
-        '1mo',
-        '3mo',
-        '6mo',
-        '1y',
-        '2y',
-        '5y',
-        '10y',
-        'ytd',
-        'max',
-    }:
-        pass
-    else:  # unexpected type
-        return ([], None)
+def get_time_since_stock_data(requested_tickers: list, requested_time_since) -> tuple:
+    if (
+        not isinstance(requested_time_since, int) and
+        not (isinstance(requested_time_since, str) and requested_time_since in {
+            '1d',
+            '5d',
+            '1mo',
+            '3mo',
+            '6mo',
+            '1y',
+            '2y',
+            '5y',
+            '10y',
+            'ytd',
+            'max',
+        })
+    ):
+        return ([], None)  # unexpected type
 
     # Get info from other endpoint first.
     stock_data, market_time = get_daily_stock_data(requested_tickers)
@@ -132,12 +133,12 @@ def get_range_stock_data(requested_tickers: list, requested_range) -> tuple:
     for stock_datum in stock_data:
         while True:  # infinite loop to keep trying to get ticker_data
             try:
-                if period:
-                    historical_price = get_historical_price_from_period(stock_datum, period)
+                if isinstance(requested_time_since, int):
+                    historical_price = get_historical_price_from_period(stock_datum, requested_time_since)
                 else:
-                    historical_price = requests.get(f'https://query1.finance.yahoo.com/v8/finance/chart/{stock_datum["ticker"]}?interval=1d&range={requested_range}').json()['chart']['result'][0]['indicators']['quote'][0]['close'][0]
+                    historical_price = requests.get(f'https://query1.finance.yahoo.com/v8/finance/chart/{stock_datum["ticker"]}?interval=1d&range={requested_time_since}').json()['chart']['result'][0]['indicators']['quote'][0]['close'][0]
 
-                # print("for " + str(stock_datum["ticker"]) + " at " + str(requested_range) + " ago, price was " + str(historical_price))
+                # print("for " + str(stock_datum["ticker"]) + " at " + str(requested_time_since) + " ago, price was " + str(historical_price))
                 # change = stock_datum['price'] - historical_price
                 # percentChange = change / old_price
                 if historical_price:
@@ -156,17 +157,17 @@ def get_range_stock_data(requested_tickers: list, requested_range) -> tuple:
 
 def get_historical_price_from_period(stock_datum: dict, period: int) -> int:
     # First try
-    response_data = requests.get(f'https://query1.finance.yahoo.com/v8/finance/chart/{stock_datum["ticker"]}?interval=1d&period1={period}&period2={period}').json()['chart']['result'][0]['indicators']['quote'][0]
+    response_data = []
     historical_price = None
     # Retries
-    num_mkt_open_retries = 0
-    while len(response_data) == 0:
+    num_mkt_close_retries = 0
+    while 'close' not in response_data:
         # No 'close' data, maybe a holiday.
-        if num_mkt_open_retries < MAX_RETRIES:
-            # Check the day before.
-            period -= SECONDS_IN_A_DAY
+        if num_mkt_close_retries < MAX_RETRIES:
+            # Check the day after.
+            period += SECONDS_IN_A_DAY
             response_data = requests.get(f'https://query1.finance.yahoo.com/v8/finance/chart/{stock_datum["ticker"]}?interval=1d&period1={period}&period2={period}').json()['chart']['result'][0]['indicators']['quote'][0]
-            num_mkt_open_retries += 1
+            num_mkt_close_retries += 1
         else:
             # Maxed out retries, give up.
             historical_price = None
@@ -175,25 +176,15 @@ def get_historical_price_from_period(stock_datum: dict, period: int) -> int:
     return historical_price
 
 
-def get_market_open_time(days_ago: int = 0, from_day: datetime = None) -> int:
-    """Returns the U.S. market open epoch time in whole seconds.
-
-    If days_ago falls on a weekend, the most recent weekday's market open time
-    will be returned instead.
-
-    NOTE: Does not account for market holidays.
-    """
-    # Default from_day to today.
-    if from_day is None:
-        from_day = datetime.now(tz=EST5EDT())
-    market_open_time_days_ago = from_day.replace(
-        hour=9, minute=30, second=0, microsecond=0) - timedelta(days=days_ago)
-    # Return most recent weekday's market open time.
-    # weekday() returns a number from 0 to 6, Monday to Sunday.
-    if market_open_time_days_ago.weekday() - 4 > 0:
-        market_open_time_days_ago -= timedelta(
-            days=market_open_time_days_ago.weekday() - 4)
-    return int(market_open_time_days_ago.timestamp())
+def is_today(time_since) -> bool:
+    """Returns True if the passed time is today, else False."""
+    if time_since is None:
+        return True
+    if time_since == '1d':
+        return True
+    if not isinstance(time_since, int):
+        return False
+    return time_since > int((datetime.now(tz=EST5EDT()) - timedelta(days=1)).timestamp())
 
 
 class EST5EDT(tzinfo):
