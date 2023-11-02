@@ -24,4 +24,7 @@ Response body:
 ]
 ```
 
-## deploy with cloud tools command$ gcloud functions deploy python-http-function --gen2 --runtime=python311 --region=us-central1 --source=. --entry-point=main --trigger-http --allow-unauthenticated
+deploy with cloud tools command $
+```
+gcloud functions deploy python-http-function --gen2 --runtime=python311 --region=us-central1 --source=. --entry-point=main --trigger-http --allow-unauthenticated
+```
